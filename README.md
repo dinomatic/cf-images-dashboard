@@ -41,16 +41,16 @@ A sci-fi themed media library dashboard for browsing and organizing Cloudflare I
 Create a `.env` file (see `.env.example`):
 
 ```bash
-# Backend API proxy target (for dev server)
-API_PROXY_TARGET=https://your-worker.workers.dev
+# Backend API URL (used for both dev proxy and production)
+VITE_API_BASE_URL=https://your-worker.workers.dev
 
-# Required: API key for backend authentication
+# API key for backend authentication
 VITE_DASHBOARD_API_KEY=your-api-key
 
-# Required: Cloudflare Images account hash
+# Cloudflare Images account hash
 VITE_CF_ACCOUNT_HASH=your-account-hash
 
-# Optional: App branding
+# App branding (optional)
 VITE_APP_TITLE="My Media Archive"
 VITE_APP_SUBTITLE="Image Browser"
 ```
@@ -65,7 +65,7 @@ npm install
 npm run dev
 ```
 
-The dev server runs on `http://localhost:5173` and proxies `/api/*` requests to the `API_PROXY_TARGET` URL.
+The dev server runs on `http://localhost:5173` and proxies `/api/*` requests to `VITE_API_BASE_URL`.
 
 ## Build & Deploy
 

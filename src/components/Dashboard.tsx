@@ -13,13 +13,17 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // In dev, use empty string to go through Vite proxy
+  // In production, use the full API URL
+  const apiBaseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || '');
+
   // Fetch the full tree once on mount
   useEffect(() => {
     const fetchTree = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/organize', {
+        const response = await fetch(`${apiBaseUrl}/api/organize`, {
           headers: {
             'X-API-Key': import.meta.env.VITE_DASHBOARD_API_KEY || '',
           },
