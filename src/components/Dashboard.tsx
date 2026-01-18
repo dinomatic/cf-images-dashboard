@@ -4,6 +4,8 @@ import DirectoryTree from './DirectoryTree';
 import ContentGrid from './ContentGrid';
 import Breadcrumb from './Breadcrumb';
 import ImageModal from './ImageModal';
+import UploadModal from './UploadModal';
+import { deleteImage } from '../utils/api';
 
 function Dashboard() {
   const [currentPath, setCurrentPath] = useState('');
@@ -12,18 +14,20 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // In dev, use empty string to go through Vite proxy
   // In production, use the full API URL
   const apiBaseUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || '');
 
-  // Fetch the full tree once on mount
+  // Fetch the full tree on mount and when refreshKey changes
   useEffect(() => {
     const fetchTree = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${apiBaseUrl}/api/organize`, {
+        const response = await fetch(`${apiBaseUrl}/api/images`, {
           headers: {
             'X-API-Key': import.meta.env.VITE_DASHBOARD_API_KEY || '',
           },
@@ -40,6 +44,10 @@ function Dashboard() {
       }
     };
     fetchTree();
+  }, [refreshKey]);
+
+  const refreshTree = useCallback(() => {
+    setRefreshKey((k) => k + 1);
   }, []);
 
   // Find current node in tree based on path
@@ -84,6 +92,23 @@ function Dashboard() {
     setSidebarOpen(!sidebarOpen);
   }, [sidebarOpen]);
 
+  const handleDeleteImage = useCallback(async (imageId: string) => {
+    const result = await deleteImage(imageId);
+    if (result.success) {
+      refreshTree();
+    } else {
+      setError(result.error || 'Failed to delete image');
+    }
+  }, [refreshTree]);
+
+  const handleOpenUpload = useCallback(() => {
+    setUploadModalOpen(true);
+  }, []);
+
+  const handleCloseUpload = useCallback(() => {
+    setUploadModalOpen(false);
+  }, []);
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Mobile sidebar toggle */}
@@ -124,8 +149,24 @@ function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-[#050505]">
-        {/* Breadcrumb */}
-        <Breadcrumb path={currentPath} onNavigate={handlePathChange} />
+        {/* Header with breadcrumb and upload button */}
+        <div className="flex items-center justify-between gap-4 pr-4 border-b border-[#222]">
+          <Breadcrumb path={currentPath} onNavigate={handlePathChange} />
+          <button
+            onClick={handleOpenUpload}
+            className="
+              flex items-center gap-2 px-3 py-1.5
+              bg-cyan/10 hover:bg-cyan/20 border border-cyan/50
+              text-cyan font-mono text-sm rounded transition-colors
+              shrink-0
+            "
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Upload
+          </button>
+        </div>
 
         {/* Error message */}
         {error && (
@@ -142,12 +183,21 @@ function Dashboard() {
           images={currentImages}
           onDirClick={handlePathChange}
           onImageClick={handleImageClick}
+          onDeleteImage={handleDeleteImage}
           loading={loading}
         />
       </main>
 
       {/* Image modal */}
       <ImageModal image={selectedImage} onClose={handleModalClose} />
+
+      {/* Upload modal */}
+      <UploadModal
+        isOpen={uploadModalOpen}
+        currentPath={currentPath}
+        onClose={handleCloseUpload}
+        onUploadComplete={refreshTree}
+      />
     </div>
   );
 }

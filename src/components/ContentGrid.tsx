@@ -7,6 +7,7 @@ interface ContentGridProps {
   images: CloudflareImage[];
   onDirClick: (path: string) => void;
   onImageClick: (image: CloudflareImage) => void;
+  onDeleteImage: (imageId: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -18,6 +19,7 @@ interface DirCardProps {
 interface ImageCardProps {
   image: CloudflareImage;
   onClick: (image: CloudflareImage) => void;
+  onDelete: (imageId: string) => Promise<void>;
 }
 
 const DirCard = memo(function DirCard({ dir, onClick }: DirCardProps) {
@@ -59,13 +61,17 @@ const DirCard = memo(function DirCard({ dir, onClick }: DirCardProps) {
   );
 });
 
-const ImageCard = memo(function ImageCard({ image, onClick }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({ image, onClick, onDelete }: ImageCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleClick = useCallback(() => {
-    onClick(image);
-  }, [image, onClick]);
+    if (!showConfirm) {
+      onClick(image);
+    }
+  }, [image, onClick, showConfirm]);
 
   const handleLoad = useCallback(() => {
     setImageLoaded(true);
@@ -76,15 +82,77 @@ const ImageCard = memo(function ImageCard({ image, onClick }: ImageCardProps) {
     setImageLoaded(true);
   }, []);
 
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowConfirm(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleting(true);
+    try {
+      await onDelete(image.id);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
+    }
+  }, [image.id, onDelete]);
+
+  const handleCancelDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowConfirm(false);
+  }, []);
+
   return (
     <div
       className="
-        bg-dark-secondary rounded-lg overflow-hidden cursor-pointer
+        group relative bg-dark-secondary rounded-lg overflow-hidden cursor-pointer
         border border-[#333] hover-glow
         transform transition-all duration-300 hover:scale-105
       "
       onClick={handleClick}
     >
+      {/* Delete button - visible on hover */}
+      {!showConfirm && (
+        <button
+          onClick={handleDeleteClick}
+          className="
+            absolute top-2 right-2 z-10 p-1.5 rounded
+            bg-black/60 text-gray-400 hover:text-red-400 hover:bg-black/80
+            opacity-0 group-hover:opacity-100 transition-opacity duration-200
+          "
+          aria-label="Delete image"
+          title="Delete image"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
+
+      {/* Confirm delete overlay */}
+      {showConfirm && (
+        <div className="absolute inset-0 z-20 bg-black/90 flex flex-col items-center justify-center p-4">
+          <p className="text-red-400 font-mono text-sm mb-3 text-center">Delete this image?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-mono rounded transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+            <button
+              onClick={handleCancelDelete}
+              disabled={deleting}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-mono rounded transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Image container */}
       <div className="relative aspect-video bg-[#0a0a0a] overflow-hidden">
         {!imageLoaded && (
@@ -127,7 +195,7 @@ const ImageCard = memo(function ImageCard({ image, onClick }: ImageCardProps) {
   );
 });
 
-function ContentGrid({ subdirs, images, onDirClick, onImageClick, loading }: ContentGridProps) {
+function ContentGrid({ subdirs, images, onDirClick, onImageClick, onDeleteImage, loading }: ContentGridProps) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -164,7 +232,7 @@ function ContentGrid({ subdirs, images, onDirClick, onImageClick, loading }: Con
         ))}
         {/* Then images, sorted A-Z */}
         {[...images].sort((a, b) => a.filename.localeCompare(b.filename)).map((image) => (
-          <ImageCard key={image.id} image={image} onClick={onImageClick} />
+          <ImageCard key={image.id} image={image} onClick={onImageClick} onDelete={onDeleteImage} />
         ))}
       </div>
     </div>

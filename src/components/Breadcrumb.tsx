@@ -21,7 +21,7 @@ function Breadcrumb({ path, onNavigate }: BreadcrumbProps) {
   }, [segments, onNavigate]);
 
   return (
-    <nav className="flex items-center gap-1 font-mono text-sm px-4 py-3 bg-dark border-b border-[#222]">
+    <nav className="flex items-center gap-1 font-mono text-sm px-4 py-3 bg-dark">
       {/* Root */}
       <button
         onClick={() => handleNavigate(-1)}

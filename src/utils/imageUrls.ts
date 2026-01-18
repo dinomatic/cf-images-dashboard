@@ -26,7 +26,7 @@ export function formatFileSize(bytes: number | undefined): string {
  * Construct thumbnail URL for grid display
  */
 export function getThumbnailURL(imageId: string): string {
-  return `${BASE_URL}/${imageId}/thumbnail`;
+  return `${BASE_URL}/${imageId}/public`;
 }
 
 /**

@@ -23,9 +23,10 @@ A sci-fi themed media library dashboard for browsing and organizing Cloudflare I
 
 **Backend**: Cloudflare Worker (separate repo)
 
-- `/api/organize` - Get full directory tree with images
-- `/api/organize?path={path}` - Get specific directory
-- `/api/images` - List all images (optional prefix filter)
+- `GET /api/images` - Get full directory tree with images
+- `GET /api/images?path={path}` - Get specific directory
+- `POST /api/images` - Upload image (multipart form: `file`, optional `id`)
+- `DELETE /api/images?id={id}` - Delete image by ID
 - Proxies to Cloudflare Images API
 
 ## Setup
@@ -117,7 +118,18 @@ The backend parses these paths to build a directory tree automatically.
 All API endpoints require `X-API-Key` header:
 
 ```bash
-curl https://your-backend.workers.dev/api/organize \
+# List images
+curl https://your-backend.workers.dev/api/images \
+  -H "X-API-Key: your-api-key"
+
+# Upload image
+curl -X POST https://your-backend.workers.dev/api/images \
+  -H "X-API-Key: your-api-key" \
+  -F "file=@image.png" \
+  -F "id=folder/image.png"
+
+# Delete image
+curl -X DELETE "https://your-backend.workers.dev/api/images?id=folder/image.png" \
   -H "X-API-Key: your-api-key"
 ```
 
